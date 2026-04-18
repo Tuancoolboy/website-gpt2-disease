@@ -68,6 +68,10 @@ type GenerationSettings = {
 };
 type SettingKey = keyof GenerationSettings;
 type BackendStatus = 'checking' | 'online' | 'offline';
+type GenerationResponse = {
+  generated_text?: string;
+  error?: string;
+};
 
 const exampleKeys = Object.keys(examplePresets) as ExampleKey[];
 const defaultExampleKey: ExampleKey = 'Hô hấp';
@@ -175,6 +179,27 @@ function describeControlValue(key: SettingKey, value: number) {
   if (key === 'temperature') return describeTemperature(value);
   if (key === 'topP') return describeTopP(value);
   return describeRepetition(value);
+}
+
+async function parseGenerationResponse(response: Response): Promise<GenerationResponse> {
+  const contentType = response.headers.get('content-type') ?? '';
+
+  if (contentType.includes('application/json')) {
+    return (await response.json()) as GenerationResponse;
+  }
+
+  const rawText = (await response.text()).trim();
+  const text = rawText || 'Empty response from backend.';
+
+  if (response.status === 404) {
+    return {
+      error: `Backend route not found (404). Received: ${text.slice(0, 160)}`,
+    };
+  }
+
+  return {
+    error: `Backend returned a non-JSON response. Received: ${text.slice(0, 160)}`,
+  };
 }
 
 export default function App() {
@@ -383,10 +408,7 @@ export default function App() {
         }),
       });
 
-      const data = (await response.json()) as {
-        generated_text?: string;
-        error?: string;
-      };
+      const data = await parseGenerationResponse(response);
 
       if (!response.ok || !data.generated_text) {
         throw new Error(data.error ?? 'Không thể tạo nội dung từ model.');

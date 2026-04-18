@@ -164,6 +164,15 @@ def resolve_static_path(request_path: str) -> Path | None:
     return None
 
 
+def normalize_request_path(request_path: str) -> str:
+    path = urlparse(request_path).path
+
+    if path != "/" and path.endswith("/"):
+        path = path.rstrip("/")
+
+    return path or "/"
+
+
 class AppHandler(BaseHTTPRequestHandler):
     server_version = "DiseaseGPTBackend/1.0"
 
@@ -195,7 +204,9 @@ class AppHandler(BaseHTTPRequestHandler):
         self._write_json(HTTPStatus.NO_CONTENT, {})
 
     def do_GET(self) -> None:  # noqa: N802
-        if self.path == "/api/health":
+        request_path = normalize_request_path(self.path)
+
+        if request_path == "/api/health":
             self._write_json(
                 HTTPStatus.OK,
                 {
@@ -216,7 +227,9 @@ class AppHandler(BaseHTTPRequestHandler):
         self._write_json(HTTPStatus.NOT_FOUND, {"error": "Không tìm thấy endpoint."})
 
     def do_POST(self) -> None:  # noqa: N802
-        if self.path != "/api/generate":
+        request_path = normalize_request_path(self.path)
+
+        if request_path != "/api/generate":
             self._write_json(
                 HTTPStatus.NOT_FOUND,
                 {"error": "Không tìm thấy endpoint."},
