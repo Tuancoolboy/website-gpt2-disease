@@ -1,23 +1,25 @@
 from __future__ import annotations
 
 import json
+import mimetypes
 import os
 import threading
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
 from typing import Any
-
-import torch
-from transformers import AutoModelForCausalLM, AutoTokenizer
+from urllib.parse import unquote, urlparse
 
 
-HOST = os.environ.get("BACKEND_HOST", "127.0.0.1")
-PORT = int(os.environ.get("BACKEND_PORT", "8000"))
+REPO_ROOT = Path(__file__).resolve().parent.parent
+STATIC_DIR = (REPO_ROOT / os.environ.get("STATIC_DIR", "dist")).resolve()
+HOST = os.environ.get("BACKEND_HOST") or ("0.0.0.0" if os.environ.get("PORT") else "127.0.0.1")
+PORT = int(os.environ.get("PORT") or os.environ.get("BACKEND_PORT", "8000"))
 MODEL_ID = os.environ.get("MODEL_ID", "sanim05/GPT2-disease_text_generation")
 MODEL_PATH = os.environ.get("MODEL_PATH", "").strip()
 MODEL_SOURCE = MODEL_PATH or MODEL_ID
 MODEL_LOCAL_ONLY = os.environ.get("MODEL_LOCAL_ONLY", "0") == "1"
-PRELOAD_MODEL = os.environ.get("PRELOAD_MODEL", "1") == "1"
+PRELOAD_MODEL = os.environ.get("PRELOAD_MODEL", "0" if os.environ.get("PORT") else "1") == "1"
 
 _MODEL_LOCK = threading.Lock()
 _TOKENIZER = None
@@ -29,7 +31,20 @@ def clamp(value: float, minimum: float, maximum: float) -> float:
     return min(max(value, minimum), maximum)
 
 
+def resolve_torch():
+    try:
+        import torch
+    except ImportError as error:  # pragma: no cover - depends on runtime packages
+        raise RuntimeError(
+            "Missing ML dependencies. Install backend requirements before starting the server."
+        ) from error
+
+    return torch
+
+
 def resolve_device() -> str:
+    torch = resolve_torch()
+
     if torch.cuda.is_available():
         return "cuda"
 
@@ -48,6 +63,9 @@ def get_model() -> tuple[Any, Any, str]:
 
     with _MODEL_LOCK:
         if _TOKENIZER is None or _MODEL is None or _DEVICE is None:
+            torch = resolve_torch()
+            from transformers import AutoModelForCausalLM, AutoTokenizer
+
             device = resolve_device()
             model_kwargs: dict[str, Any] = {}
 
@@ -88,6 +106,7 @@ def generate_text(payload: dict[str, Any]) -> dict[str, Any]:
     top_p = clamp(float(payload.get("top_p", 0.95)), 0.5, 1.0)
     repetition_penalty = clamp(float(payload.get("repetition_penalty", 1.1)), 1.0, 1.6)
 
+    torch = resolve_torch()
     tokenizer, model, device = get_model()
     inputs = tokenizer(prompt, return_tensors="pt")
     inputs = {key: value.to(device) for key, value in inputs.items()}
@@ -120,6 +139,31 @@ def generate_text(payload: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def resolve_static_path(request_path: str) -> Path | None:
+    parsed = urlparse(request_path)
+    raw_path = unquote(parsed.path)
+
+    if raw_path in {"", "/"}:
+        candidate = STATIC_DIR / "index.html"
+    else:
+        candidate = (STATIC_DIR / raw_path.lstrip("/")).resolve()
+
+        if STATIC_DIR not in candidate.parents and candidate != STATIC_DIR:
+            return None
+
+        if candidate.is_dir():
+            candidate = candidate / "index.html"
+
+    if candidate.is_file():
+        return candidate
+
+    spa_fallback = STATIC_DIR / "index.html"
+    if spa_fallback.is_file():
+        return spa_fallback
+
+    return None
+
+
 class AppHandler(BaseHTTPRequestHandler):
     server_version = "DiseaseGPTBackend/1.0"
 
@@ -131,6 +175,19 @@ class AppHandler(BaseHTTPRequestHandler):
         self.send_header("Access-Control-Allow-Origin", "*")
         self.send_header("Access-Control-Allow-Headers", "Content-Type")
         self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        self.end_headers()
+        self.wfile.write(body)
+
+    def _write_file(self, path: Path) -> None:
+        body = path.read_bytes()
+        content_type, encoding = mimetypes.guess_type(path.name)
+
+        self.send_response(HTTPStatus.OK)
+        self.send_header("Content-Type", content_type or "application/octet-stream")
+        self.send_header("Content-Length", str(len(body)))
+        self.send_header("Cache-Control", "no-cache")
+        if encoding:
+            self.send_header("Content-Encoding", encoding)
         self.end_headers()
         self.wfile.write(body)
 
@@ -151,10 +208,12 @@ class AppHandler(BaseHTTPRequestHandler):
             )
             return
 
-        self._write_json(
-            HTTPStatus.NOT_FOUND,
-            {"error": "Không tìm thấy endpoint."},
-        )
+        static_file = resolve_static_path(self.path)
+        if static_file is not None:
+            self._write_file(static_file)
+            return
+
+        self._write_json(HTTPStatus.NOT_FOUND, {"error": "Không tìm thấy endpoint."})
 
     def do_POST(self) -> None:  # noqa: N802
         if self.path != "/api/generate":
