@@ -1,0 +1,504 @@
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-display: "Instrument Serif", serif;
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  @apply m-0 bg-[#f7f3eb] font-sans text-[#1b2940] antialiased;
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.aethera-shell {
+  position: relative;
+  height: 100vh;
+  overflow: hidden;
+  background: #fbf8f1;
+}
+
+.aethera-background,
+.aethera-video,
+.aethera-video-overlay,
+.aethera-noise {
+  position: absolute;
+  inset: 0;
+}
+
+.aethera-background {
+  top: 250px;
+  bottom: 0;
+  inset: auto 0 0 0;
+  height: calc(100% - 250px);
+  pointer-events: none;
+}
+
+.aethera-video {
+  object-fit: cover;
+  transition: opacity 120ms linear;
+  filter: saturate(1.04) brightness(1.05);
+}
+
+.aethera-video-overlay {
+  background:
+    linear-gradient(
+      180deg,
+      rgba(251, 248, 241, 1) 0%,
+      rgba(251, 248, 241, 0.22) 18%,
+      rgba(251, 248, 241, 0) 34%,
+      rgba(251, 248, 241, 0) 84%,
+      rgba(251, 248, 241, 0.24) 94%,
+      rgba(251, 248, 241, 0.62) 100%
+    );
+}
+
+.aethera-noise {
+  display: none;
+}
+
+.aethera-content {
+  position: relative;
+  z-index: 1;
+  width: min(1380px, calc(100% - 48px));
+  height: 100vh;
+  margin: 0 auto;
+  padding: 20px 0 24px;
+  overflow: hidden;
+}
+
+.aethera-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 14px 0;
+  border-bottom: 1px solid rgba(27, 41, 64, 0.1);
+}
+
+.aethera-brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.aethera-brand-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.52);
+  color: #1b2940;
+  backdrop-filter: blur(10px);
+}
+
+.aethera-brand-title {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 600;
+}
+
+.aethera-brand-subtitle {
+  margin: 4px 0 0;
+  color: rgba(27, 41, 64, 0.56);
+  font-size: 0.74rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+
+.aethera-nav-links {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px 14px;
+  color: rgba(27, 41, 64, 0.72);
+  font-size: 0.88rem;
+}
+
+.aethera-nav-links span,
+.aethera-nav-links a {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0;
+}
+
+.aethera-hero {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  padding: 24px 0 8px;
+}
+
+.aethera-eyebrow {
+  margin: 0;
+  color: rgba(74, 112, 160, 0.9);
+  font-size: 0.76rem;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+}
+
+.aethera-title {
+  max-width: 980px;
+  margin: 8px 0 0;
+  font-family: var(--font-display);
+  color: #162338;
+  font-size: clamp(2.25rem, 5vw, 4.8rem);
+  font-weight: 400;
+  line-height: 0.93;
+  letter-spacing: -0.06em;
+  text-wrap: balance;
+}
+
+.aethera-summary {
+  max-width: 720px;
+  margin: 12px 0 0;
+  color: rgba(27, 41, 64, 0.76);
+  font-size: 0.92rem;
+  line-height: 1.65;
+}
+
+.aethera-examples {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.aethera-pill {
+  border: 1px solid rgba(27, 41, 64, 0.14);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.7);
+  padding: 9px 16px;
+  color: rgba(27, 41, 64, 0.84);
+  transition:
+    background 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease,
+    transform 160ms ease;
+}
+
+.aethera-pill:hover,
+.aethera-pill.is-active {
+  background: rgba(191, 227, 255, 0.92);
+  color: #08111f;
+  border-color: rgba(162, 214, 255, 0.92);
+  transform: translateY(-1px);
+}
+
+.aethera-flow {
+  display: grid;
+  grid-template-columns: minmax(0, 1.06fr) minmax(0, 0.94fr);
+  gap: 34px;
+  margin-top: 16px;
+  min-height: 0;
+  flex: 1;
+  align-items: start;
+}
+
+.aethera-label {
+  display: block;
+  color: rgba(27, 41, 64, 0.56);
+  font-size: 0.7rem;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+}
+
+.aethera-label-gap {
+  margin-top: 22px;
+}
+
+.aethera-form,
+.aethera-controls {
+  min-height: 0;
+}
+
+.aethera-form {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+}
+
+.aethera-compose {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  padding: 18px 22px 18px;
+  border-radius: 28px;
+  background: linear-gradient(180deg, rgba(255, 252, 244, 0.68), rgba(255, 252, 244, 0.34));
+  border: 1px solid rgba(255, 255, 255, 0.52);
+  backdrop-filter: blur(10px);
+}
+
+.aethera-input,
+.aethera-textarea {
+  width: 100%;
+  padding: 12px 0 12px;
+  border: 0;
+  border-bottom: 1px solid rgba(27, 41, 64, 0.16);
+  background: transparent;
+  color: #172235;
+  outline: none;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.aethera-input {
+  margin-top: 8px;
+  font-size: 1.04rem;
+}
+
+.aethera-textarea {
+  min-height: 124px;
+  max-height: 136px;
+  margin-top: 8px;
+  resize: none;
+  font-size: 0.92rem;
+  line-height: 1.7;
+}
+
+.aethera-input::placeholder,
+.aethera-textarea::placeholder {
+  color: rgba(27, 41, 64, 0.34);
+}
+
+.aethera-input:focus,
+.aethera-textarea:focus {
+  border-color: rgba(93, 152, 211, 0.85);
+  box-shadow: inset 0 -1px 0 rgba(93, 152, 211, 0.85);
+}
+
+.aethera-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.aethera-actions-right {
+  margin-top: 0;
+}
+
+.aethera-cta,
+.aethera-ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  border-radius: 999px;
+  padding: 14px 22px;
+  transition:
+    transform 160ms ease,
+    background 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease;
+}
+
+.aethera-cta {
+  background: #17304e;
+  color: #fffef8;
+  border: 1px solid #17304e;
+}
+
+.aethera-cta:hover,
+.aethera-ghost:hover {
+  transform: translateY(-1px);
+}
+
+.aethera-cta:disabled,
+.aethera-ghost:disabled {
+  cursor: not-allowed;
+  opacity: 0.72;
+  transform: none;
+}
+
+.aethera-ghost {
+  border: 1px solid rgba(27, 41, 64, 0.14);
+  background: rgba(255, 255, 255, 0.72);
+  color: rgba(27, 41, 64, 0.84);
+}
+
+.aethera-controls {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+  padding-top: 4px;
+  gap: 10px;
+}
+
+.aethera-inline-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 22px;
+  color: rgba(27, 41, 64, 0.66);
+  font-size: 0.82rem;
+}
+
+.aethera-sliders {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px 18px;
+}
+
+.aethera-slider-row {
+  display: block;
+  padding-top: 8px;
+  border-top: 1px solid rgba(27, 41, 64, 0.1);
+}
+
+.aethera-slider-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  color: rgba(27, 41, 64, 0.82);
+  font-size: 0.9rem;
+}
+
+.aethera-slider-top strong {
+  color: rgba(53, 104, 160, 0.96);
+  font-weight: 600;
+}
+
+.aethera-range {
+  width: 100%;
+  margin-top: 6px;
+  accent-color: rgb(102 167 224);
+}
+
+.aethera-output {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  padding-top: 10px;
+  border-top: 1px solid rgba(27, 41, 64, 0.12);
+}
+
+.aethera-output-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  color: rgba(27, 41, 64, 0.58);
+  font-size: 0.7rem;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+}
+
+.aethera-error {
+  margin: 12px 0 0;
+  color: rgb(179 55 43);
+  line-height: 1.6;
+}
+
+.aethera-output-text {
+  max-width: 100%;
+  min-height: 0;
+  flex: 1;
+  overflow: auto;
+  margin-top: 10px;
+  padding-right: 6px;
+  color: rgba(27, 41, 64, 0.9);
+  font-size: 0.95rem;
+  line-height: 1.78;
+}
+
+.aethera-loading-copy {
+  color: rgba(27, 41, 64, 0.78);
+}
+
+.aethera-dock {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 18px 24px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(27, 41, 64, 0.1);
+}
+
+@media (max-width: 1180px) {
+  .aethera-background {
+    top: 320px;
+    height: calc(100% - 320px);
+  }
+
+  .aethera-flow {
+    grid-template-columns: 1fr;
+    gap: 26px;
+  }
+
+  .aethera-sliders {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .aethera-dock {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 880px) {
+  .aethera-background {
+    top: 390px;
+    height: calc(100% - 390px);
+  }
+
+  .aethera-content {
+    width: min(100% - 28px, 1380px);
+    height: 100vh;
+    padding-top: 16px;
+  }
+
+  .aethera-nav {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .aethera-nav-links {
+    justify-content: flex-start;
+  }
+
+  .aethera-hero {
+    padding-top: 24px;
+  }
+
+  .aethera-summary {
+    font-size: 0.92rem;
+  }
+
+  .aethera-textarea {
+    min-height: 118px;
+    max-height: 128px;
+  }
+
+  .aethera-output-head {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .aethera-sliders {
+    grid-template-columns: 1fr;
+  }
+}
