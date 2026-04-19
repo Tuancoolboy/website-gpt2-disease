@@ -4,6 +4,7 @@ import json
 import mimetypes
 import os
 import threading
+import time
 import traceback
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -16,11 +17,20 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 STATIC_DIR = (REPO_ROOT / os.environ.get("STATIC_DIR", "dist")).resolve()
 HOST = os.environ.get("BACKEND_HOST") or ("0.0.0.0" if os.environ.get("PORT") else "127.0.0.1")
 PORT = int(os.environ.get("PORT") or os.environ.get("BACKEND_PORT", "8000"))
+IS_HOSTED_RUNTIME = bool(os.environ.get("PORT"))
 MODEL_ID = os.environ.get("MODEL_ID", "sanim05/GPT2-disease_text_generation")
 MODEL_PATH = os.environ.get("MODEL_PATH", "").strip()
 MODEL_SOURCE = MODEL_PATH or MODEL_ID
 MODEL_LOCAL_ONLY = os.environ.get("MODEL_LOCAL_ONLY", "0") == "1"
-PRELOAD_MODEL = os.environ.get("PRELOAD_MODEL", "0" if os.environ.get("PORT") else "1") == "1"
+PRELOAD_MODEL = os.environ.get("PRELOAD_MODEL", "0" if IS_HOSTED_RUNTIME else "1") == "1"
+MAX_PROMPT_CHARS = int(os.environ.get("MAX_PROMPT_CHARS", "600"))
+MAX_INPUT_TOKENS = int(os.environ.get("MAX_INPUT_TOKENS", "128" if IS_HOSTED_RUNTIME else "256"))
+MAX_NEW_TOKENS_LIMIT = int(
+    os.environ.get("MAX_NEW_TOKENS_LIMIT", "128" if IS_HOSTED_RUNTIME else "512")
+)
+DISABLE_GENERATION_CACHE = (
+    os.environ.get("DISABLE_GENERATION_CACHE", "1" if IS_HOSTED_RUNTIME else "0") == "1"
+)
 
 _MODEL_LOCK = threading.Lock()
 _MODEL_STATE_LOCK = threading.Lock()
@@ -153,15 +163,35 @@ def generate_text(payload: dict[str, Any]) -> dict[str, Any]:
     if not prompt:
         raise ValueError("Trường 'prompt' không được để trống.")
 
-    max_new_tokens = int(clamp(float(payload.get("max_new_tokens", 80)), 16, 512))
+    if len(prompt) > MAX_PROMPT_CHARS:
+        raise ValueError(
+            f"Prompt quá dài. Hãy giữ dưới {MAX_PROMPT_CHARS} ký tự để server xử lý ổn định."
+        )
+
+    max_new_tokens = int(clamp(float(payload.get("max_new_tokens", 80)), 16, MAX_NEW_TOKENS_LIMIT))
     temperature = clamp(float(payload.get("temperature", 0.8)), 0.2, 1.5)
     top_p = clamp(float(payload.get("top_p", 0.95)), 0.5, 1.0)
     repetition_penalty = clamp(float(payload.get("repetition_penalty", 1.1)), 1.0, 1.6)
 
     torch = resolve_torch()
     tokenizer, model, device = get_model()
-    inputs = tokenizer(prompt, return_tensors="pt")
+    inputs = tokenizer(
+        prompt,
+        return_tensors="pt",
+        truncation=True,
+        max_length=MAX_INPUT_TOKENS,
+    )
     inputs = {key: value.to(device) for key, value in inputs.items()}
+    prompt_tokens = int(inputs["input_ids"].shape[-1])
+    started_at = time.perf_counter()
+    print(
+        (
+            "Starting generation "
+            f"device={device} prompt_chars={len(prompt)} prompt_tokens={prompt_tokens} "
+            f"max_new_tokens={max_new_tokens} use_cache={not DISABLE_GENERATION_CACHE}"
+        ),
+        flush=True,
+    )
 
     with torch.inference_mode():
         outputs = model.generate(
@@ -172,6 +202,7 @@ def generate_text(payload: dict[str, Any]) -> dict[str, Any]:
             top_p=top_p,
             repetition_penalty=repetition_penalty,
             pad_token_id=tokenizer.eos_token_id,
+            use_cache=not DISABLE_GENERATION_CACHE,
         )
 
     generated_text = tokenizer.decode(outputs[0], skip_special_tokens=True)
@@ -179,6 +210,14 @@ def generate_text(payload: dict[str, Any]) -> dict[str, Any]:
         generated_text[len(prompt) :].lstrip()
         if generated_text.startswith(prompt)
         else generated_text
+    )
+    elapsed_ms = round((time.perf_counter() - started_at) * 1000)
+    print(
+        (
+            "Finished generation "
+            f"elapsed_ms={elapsed_ms} output_tokens={int(outputs[0].shape[-1])}"
+        ),
+        flush=True,
     )
 
     return {
@@ -188,6 +227,7 @@ def generate_text(payload: dict[str, Any]) -> dict[str, Any]:
         "prompt": prompt,
         "generated_text": generated_text,
         "continuation": continuation,
+        "max_new_tokens_limit": MAX_NEW_TOKENS_LIMIT,
     }
 
 
@@ -275,6 +315,8 @@ class AppHandler(BaseHTTPRequestHandler):
                     "loaded": state["loaded"],
                     "loading": state["loading"],
                     "error": state["error"],
+                    "max_new_tokens_limit": MAX_NEW_TOKENS_LIMIT,
+                    "max_input_tokens": MAX_INPUT_TOKENS,
                 },
             )
             return
@@ -308,6 +350,7 @@ class AppHandler(BaseHTTPRequestHandler):
                     "loading": state["loading"],
                     "device": state["device"],
                     "model_source": MODEL_SOURCE,
+                    "max_new_tokens_limit": MAX_NEW_TOKENS_LIMIT,
                 },
             )
             return
@@ -343,6 +386,14 @@ def run() -> None:
     print(f"Backend running at http://{HOST}:{PORT}")
     print(f"Model: {MODEL_ID}")
     print(f"Source: {MODEL_SOURCE}")
+    print(
+        "Generation limits: "
+        f"max_prompt_chars={MAX_PROMPT_CHARS}, "
+        f"max_input_tokens={MAX_INPUT_TOKENS}, "
+        f"max_new_tokens={MAX_NEW_TOKENS_LIMIT}, "
+        f"use_cache={not DISABLE_GENERATION_CACHE}",
+        flush=True,
+    )
     server.serve_forever()
 
 

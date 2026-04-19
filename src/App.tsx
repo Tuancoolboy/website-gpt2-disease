@@ -74,21 +74,24 @@ type HealthResponse = {
   loaded?: boolean;
   loading?: boolean;
   error?: string;
+  max_new_tokens_limit?: number;
 };
 type GenerationResponse = {
   generated_text?: string;
   error?: string;
+  max_new_tokens_limit?: number;
 };
 
 const exampleKeys = Object.keys(examplePresets) as ExampleKey[];
 const defaultExampleKey: ExampleKey = 'Hô hấp';
 
 const DEFAULT_SETTINGS: GenerationSettings = {
-  maxNewTokens: 120,
+  maxNewTokens: 96,
   temperature: 0.8,
   topP: 0.95,
   repetitionPenalty: 1.1,
 };
+const DEFAULT_MAX_NEW_TOKENS_LIMIT = 320;
 
 const generationControls: Array<{
   key: SettingKey;
@@ -97,7 +100,7 @@ const generationControls: Array<{
   max: number;
   step: number;
 }> = [
-  {key: 'maxNewTokens', label: 'Độ dài', min: 48, max: 320, step: 8},
+  {key: 'maxNewTokens', label: 'Độ dài', min: 48, max: DEFAULT_MAX_NEW_TOKENS_LIMIT, step: 8},
   {key: 'temperature', label: 'Giọng văn', min: 0.2, max: 1.3, step: 0.05},
   {key: 'topP', label: 'Độ bám ý', min: 0.6, max: 1, step: 0.01},
   {key: 'repetitionPenalty', label: 'Giảm lặp', min: 1, max: 1.4, step: 0.05},
@@ -238,6 +241,7 @@ export default function App() {
   const [generationError, setGenerationError] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [backendStatus, setBackendStatus] = useState<BackendStatus>('checking');
+  const [backendMaxNewTokensLimit, setBackendMaxNewTokensLimit] = useState(DEFAULT_MAX_NEW_TOKENS_LIMIT);
   const [settings, setSettings] = useState<GenerationSettings>(() => {
     const raw = window.localStorage.getItem(STORAGE_KEY);
 
@@ -252,10 +256,21 @@ export default function App() {
       return DEFAULT_SETTINGS;
     }
   });
+  const effectiveMaxNewTokensLimit = Math.max(
+    48,
+    Math.min(DEFAULT_MAX_NEW_TOKENS_LIMIT, backendMaxNewTokensLimit),
+  );
 
   useEffect(() => {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
   }, [settings]);
+
+  useEffect(() => {
+    setSettings((current) => ({
+      ...current,
+      maxNewTokens: Math.round(clamp(current.maxNewTokens, 48, effectiveMaxNewTokensLimit)),
+    }));
+  }, [effectiveMaxNewTokensLimit]);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -304,6 +319,10 @@ export default function App() {
         const data = (await response.json()) as HealthResponse;
 
         if (active) {
+          if (typeof data.max_new_tokens_limit === 'number') {
+            setBackendMaxNewTokensLimit(data.max_new_tokens_limit);
+          }
+
           if (data.loaded) {
             setBackendStatus('online');
           } else if (data.loading || data.status === 'warming') {
@@ -444,7 +463,7 @@ export default function App() {
         signal: controller.signal,
         body: JSON.stringify({
           prompt,
-          max_new_tokens: settings.maxNewTokens,
+          max_new_tokens: Math.min(settings.maxNewTokens, effectiveMaxNewTokensLimit),
           temperature: settings.temperature,
           top_p: settings.topP,
           repetition_penalty: settings.repetitionPenalty,
@@ -601,11 +620,12 @@ export default function App() {
 
             <section className="aethera-controls">
               <div className="aethera-inline-meta">
-                <span>Ví dụ hiện tại: {selectedExample}</span>
-                <span>Độ dài: {describeLength(settings.maxNewTokens)}</span>
-                <span>Model: GPT-2 Vietnamese Health</span>
-                <span>Backend: {describeBackendStatus(backendStatus)}</span>
-              </div>
+                    <span>Ví dụ hiện tại: {selectedExample}</span>
+                    <span>Độ dài: {describeLength(settings.maxNewTokens)}</span>
+                    <span>Model: GPT-2 Vietnamese Health</span>
+                    <span>Backend: {describeBackendStatus(backendStatus)}</span>
+                    <span>Token tối đa: {effectiveMaxNewTokensLimit}</span>
+                  </div>
 
               <section className="aethera-output">
                 <div className="aethera-output-head">
@@ -649,7 +669,7 @@ export default function App() {
                   <input
                     type="range"
                     min={control.min}
-                    max={control.max}
+                    max={control.key === 'maxNewTokens' ? effectiveMaxNewTokensLimit : control.max}
                     step={control.step}
                     value={settings[control.key]}
                     onChange={handleSettingChange(control.key)}
