@@ -1,17 +1,4 @@
----
-title: GPT-2 Disease Website
-colorFrom: blue
-colorTo: indigo
-sdk: docker
-app_port: 7860
-startup_duration_timeout: 1h
-short_description: Vietnamese GPT-2 disease text generation demo
-models:
-  - sanim05/GPT2-disease_text_generation
-preload_from_hub:
-  - sanim05/GPT2-disease_text_generation
-pinned: false
----
+
 
 # GPT-2 Disease Website
 
