@@ -499,6 +499,12 @@ export default function App() {
     }
   };
 
+  const outputPlaceholder = isGenerating
+    ? 'Model đang tạo nội dung từ prompt. Lần chạy đầu có thể mất 20 đến 60 giây, nhất là khi backend đang chạy bằng CPU.'
+    : backendStatus === 'warming'
+      ? 'Server đang tải model vào bộ nhớ. Khi trạng thái chuyển sang sẵn sàng, bạn có thể chạy prompt bình thường.'
+      : 'Nội dung sinh ra sẽ xuất hiện tại đây.';
+
   return (
     <div className="aethera-shell">
       <div className="aethera-background">
@@ -638,21 +644,13 @@ export default function App() {
                 ) : null}
 
                 <div className="aethera-output-text">
-                  {isGenerating ? (
-                    <p className="aethera-loading-copy">
-                      Model đang tạo nội dung từ prompt. Lần chạy đầu có thể mất 20 đến 60 giây,
-                      nhất là khi backend đang chạy bằng CPU.
-                    </p>
-                  ) : backendStatus === 'warming' && !generatedText ? (
-                    <p className="aethera-loading-copy">
-                      Server đang tải model vào bộ nhớ. Khi trạng thái chuyển sang sẵn sàng, bạn có
-                      thể chạy prompt bình thường.
-                    </p>
-                  ) : generatedText ? (
-                    <p className="whitespace-pre-wrap">{generatedText}</p>
-                  ) : (
-                    null
-                  )}
+                  <textarea
+                    className="aethera-output-field"
+                    value={generatedText}
+                    placeholder={outputPlaceholder}
+                    readOnly
+                    spellCheck={false}
+                  />
                 </div>
               </section>
             </section>
