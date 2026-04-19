@@ -213,7 +213,7 @@ a {
   margin-top: 16px;
   min-height: 0;
   flex: 1;
-  align-items: start;
+  align-items: stretch;
 }
 
 .aethera-label {
@@ -231,6 +231,7 @@ a {
 .aethera-form,
 .aethera-controls {
   min-height: 0;
+  height: 100%;
 }
 
 .aethera-form {
@@ -423,6 +424,12 @@ a {
   color: rgba(27, 41, 64, 0.9);
   font-size: 0.95rem;
   line-height: 1.78;
+}
+
+.aethera-output-text p {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
 .aethera-loading-copy {
