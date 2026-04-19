@@ -21,42 +21,50 @@ const examplePresets = {
   'Tim mạch': {
     topic: 'bệnh tim',
     aliases: ['benh tim', 'tim mach', 'benh mach vanh', 'tim'],
-    prompt: 'bệnh tim là',
+    prompt:
+      'bệnh tim mạch là nhóm bệnh ảnh hưởng đến tim và mạch máu, có thể tiến triển âm thầm trong thời gian dài. Những dấu hiệu, nguyên nhân và biến chứng thường gặp gồm',
   },
   'Hô hấp': {
     topic: 'viêm phổi',
     aliases: ['viem phoi', 'ho hap', 'hen phe quan', 'hen suyen'],
-    prompt: 'viêm phổi là',
+    prompt:
+      'viêm phổi là tình trạng nhiễm trùng ở phổi, thường gây ho, sốt và khó thở nếu không được điều trị kịp thời. Các triệu chứng, nguyên nhân và cách chăm sóc thường gặp là',
   },
   'Tiêu hóa': {
     topic: 'đau dạ dày',
     aliases: ['dau da day', 'tieu hoa', 'viem loet da day', 'da day'],
-    prompt: 'đau dạ dày là',
+    prompt:
+      'đau dạ dày là tình trạng đau hoặc nóng rát vùng thượng vị, thường liên quan đến rối loạn tiêu hóa hay viêm loét dạ dày. Người bệnh thường có các biểu hiện và nguyên nhân như',
   },
   'Thần kinh': {
     topic: 'tai biến mạch máu não',
     aliases: ['tai bien mach mau nao', 'than kinh', 'dot quy', 'dot quy nao'],
-    prompt: 'tai biến mạch máu não là',
+    prompt:
+      'tai biến mạch máu não là tình trạng não bị tổn thương do tắc hoặc vỡ mạch máu não và cần được cấp cứu sớm. Dấu hiệu nhận biết, yếu tố nguy cơ và biến chứng thường gặp gồm',
   },
   'Nội tiết': {
     topic: 'tiểu đường tuýp 2',
     aliases: ['tieu duong', 'noi tiet', 'duong huyet cao', 'tieu duong tuyp 2'],
-    prompt: 'tiểu đường tuýp 2 là',
+    prompt:
+      'tiểu đường tuýp 2 là bệnh rối loạn chuyển hóa làm đường huyết tăng kéo dài do cơ thể đề kháng insulin. Những biểu hiện, nguyên nhân và cách kiểm soát bệnh thường gồm',
   },
   'Da liễu': {
     topic: 'viêm da cơ địa',
     aliases: ['viem da co dia', 'da lieu', 'ngua da', 'cham'],
-    prompt: 'viêm da cơ địa là',
+    prompt:
+      'viêm da cơ địa là bệnh da mạn tính thường gây khô da, ngứa và tái phát theo từng đợt. Triệu chứng, yếu tố làm bệnh nặng hơn và cách chăm sóc da thường gặp là',
   },
   'Nhi khoa': {
     topic: 'sốt xuất huyết ở trẻ em',
     aliases: ['sot xuat huyet', 'nhi khoa', 'tre em', 'sot xuat huyet o tre em'],
-    prompt: 'sốt xuất huyết ở trẻ em là',
+    prompt:
+      'sốt xuất huyết ở trẻ em là bệnh truyền nhiễm do virus Dengue, thường gây sốt cao và có nguy cơ biến chứng nếu theo dõi muộn. Các dấu hiệu, giai đoạn bệnh và lưu ý chăm sóc thường là',
   },
   'Bệnh mạn tính': {
     topic: 'tăng huyết áp',
     aliases: ['tang huyet ap', 'benh man tinh', 'cao huyet ap', 'huyet ap cao'],
-    prompt: 'tăng huyết áp là',
+    prompt:
+      'tăng huyết áp là tình trạng huyết áp cao kéo dài, làm tăng nguy cơ đột quỵ, suy tim và tổn thương thận. Bệnh thường có các yếu tố nguy cơ, biểu hiện và hướng kiểm soát như',
   },
 } satisfies Record<string, ExamplePreset>;
 
@@ -165,7 +173,7 @@ function buildOpeningText(topic: string) {
     return matchedPreset.prompt;
   }
 
-  return `${cleanTopic} là`;
+  return `${cleanTopic} là bệnh cần được nhận biết sớm để hạn chế biến chứng. Những nguyên nhân, triệu chứng và cách phòng ngừa thường được nhắc đến gồm`;
 }
 
 function describeLength(value: number) {
