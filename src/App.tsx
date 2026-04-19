@@ -91,7 +91,7 @@ const DEFAULT_SETTINGS: GenerationSettings = {
   topP: 0.95,
   repetitionPenalty: 1.1,
 };
-const DEFAULT_MAX_NEW_TOKENS_LIMIT = 1024;
+const DEFAULT_MAX_NEW_TOKENS_LIMIT = 256;
 
 const generationControls: Array<{
   key: SettingKey;
@@ -197,6 +197,15 @@ function describeControlValue(key: SettingKey, value: number) {
   if (key === 'temperature') return describeTemperature(value);
   if (key === 'topP') return describeTopP(value);
   return describeRepetition(value);
+}
+
+function formatControlValue(key: SettingKey, value: number) {
+  if (key === 'maxNewTokens') {
+    return `${Math.round(value)} token`;
+  }
+
+  const numericValue = key === 'topP' ? value.toFixed(2) : value.toFixed(2);
+  return `${describeControlValue(key, value)} (${numericValue})`;
 }
 
 function describeBackendStatus(status: BackendStatus) {
@@ -627,7 +636,7 @@ export default function App() {
             <section className="aethera-controls">
               <div className="aethera-inline-meta">
                 <span>Ví dụ hiện tại: {selectedExample}</span>
-                <span>Độ dài: {describeLength(settings.maxNewTokens)}</span>
+                <span>Độ dài: {Math.round(settings.maxNewTokens)} token</span>
                 <span>Model: GPT-2 Vietnamese Health</span>
                 <span>Backend: {describeBackendStatus(backendStatus)}</span>
                 <span>Token tối đa: {effectiveMaxNewTokensLimit}</span>
@@ -662,7 +671,7 @@ export default function App() {
                 <label key={control.key} className="aethera-slider-row">
                   <span className="aethera-slider-top">
                     <span>{control.label}</span>
-                    <strong>{describeControlValue(control.key, settings[control.key])}</strong>
+                    <strong>{formatControlValue(control.key, settings[control.key])}</strong>
                   </span>
                   <input
                     type="range"
