@@ -504,6 +504,12 @@ export default function App() {
     : backendStatus === 'warming'
       ? 'Server đang tải model vào bộ nhớ. Khi trạng thái chuyển sang sẵn sàng, bạn có thể chạy prompt bình thường.'
       : 'Nội dung sinh ra sẽ xuất hiện tại đây.';
+  const settingSummary = [
+    {label: 'Độ dài', value: describeLength(settings.maxNewTokens)},
+    {label: 'Giọng văn', value: describeTemperature(settings.temperature)},
+    {label: 'Độ bám ý', value: describeTopP(settings.topP)},
+    {label: 'Giảm lặp', value: describeRepetition(settings.repetitionPenalty)},
+  ];
 
   return (
     <div className="aethera-shell">
@@ -626,12 +632,26 @@ export default function App() {
 
             <section className="aethera-controls">
               <div className="aethera-inline-meta">
-                    <span>Ví dụ hiện tại: {selectedExample}</span>
-                    <span>Độ dài: {describeLength(settings.maxNewTokens)}</span>
-                    <span>Model: GPT-2 Vietnamese Health</span>
-                    <span>Backend: {describeBackendStatus(backendStatus)}</span>
-                    <span>Token tối đa: {effectiveMaxNewTokensLimit}</span>
-                  </div>
+                <span>Ví dụ hiện tại: {selectedExample}</span>
+                <span>Độ dài: {describeLength(settings.maxNewTokens)}</span>
+                <span>Model: GPT-2 Vietnamese Health</span>
+                <span>Backend: {describeBackendStatus(backendStatus)}</span>
+                <span>Token tối đa: {effectiveMaxNewTokensLimit}</span>
+              </div>
+
+              <section className="aethera-setting-summary">
+                <div className="aethera-setting-summary-head">
+                  <span>Tự setting</span>
+                </div>
+                <div className="aethera-setting-summary-grid">
+                  {settingSummary.map((item) => (
+                    <div key={item.label} className="aethera-setting-chip">
+                      <span>{item.label}</span>
+                      <strong>{item.value}</strong>
+                    </div>
+                  ))}
+                </div>
+              </section>
 
               <section className="aethera-output">
                 <div className="aethera-output-head">
