@@ -26,7 +26,7 @@ PRELOAD_MODEL = os.environ.get("PRELOAD_MODEL", "0" if IS_HOSTED_RUNTIME else "1
 MAX_PROMPT_CHARS = int(os.environ.get("MAX_PROMPT_CHARS", "600"))
 MAX_INPUT_TOKENS = int(os.environ.get("MAX_INPUT_TOKENS", "128" if IS_HOSTED_RUNTIME else "256"))
 MAX_NEW_TOKENS_LIMIT = int(
-    os.environ.get("MAX_NEW_TOKENS_LIMIT", "128" if IS_HOSTED_RUNTIME else "512")
+    os.environ.get("MAX_NEW_TOKENS_LIMIT", "1024")
 )
 DISABLE_GENERATION_CACHE = (
     os.environ.get("DISABLE_GENERATION_CACHE", "1" if IS_HOSTED_RUNTIME else "0") == "1"

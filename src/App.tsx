@@ -91,7 +91,7 @@ const DEFAULT_SETTINGS: GenerationSettings = {
   topP: 0.95,
   repetitionPenalty: 1.1,
 };
-const DEFAULT_MAX_NEW_TOKENS_LIMIT = 320;
+const DEFAULT_MAX_NEW_TOKENS_LIMIT = 1024;
 
 const generationControls: Array<{
   key: SettingKey;
@@ -121,7 +121,7 @@ function buildApiUrl(path: string) {
 function normalizeSettings(candidate?: Partial<GenerationSettings>): GenerationSettings {
   return {
     maxNewTokens: Math.round(
-      clamp(candidate?.maxNewTokens ?? DEFAULT_SETTINGS.maxNewTokens, 48, 320),
+      clamp(candidate?.maxNewTokens ?? DEFAULT_SETTINGS.maxNewTokens, 48, DEFAULT_MAX_NEW_TOKENS_LIMIT),
     ),
     temperature: clamp(candidate?.temperature ?? DEFAULT_SETTINGS.temperature, 0.2, 1.3),
     topP: clamp(candidate?.topP ?? DEFAULT_SETTINGS.topP, 0.6, 1),
@@ -504,12 +504,6 @@ export default function App() {
     : backendStatus === 'warming'
       ? 'Server đang tải model vào bộ nhớ. Khi trạng thái chuyển sang sẵn sàng, bạn có thể chạy prompt bình thường.'
       : 'Nội dung sinh ra sẽ xuất hiện tại đây.';
-  const settingSummary = [
-    {label: 'Độ dài', value: describeLength(settings.maxNewTokens)},
-    {label: 'Giọng văn', value: describeTemperature(settings.temperature)},
-    {label: 'Độ bám ý', value: describeTopP(settings.topP)},
-    {label: 'Giảm lặp', value: describeRepetition(settings.repetitionPenalty)},
-  ];
 
   return (
     <div className="aethera-shell">
@@ -638,20 +632,6 @@ export default function App() {
                 <span>Backend: {describeBackendStatus(backendStatus)}</span>
                 <span>Token tối đa: {effectiveMaxNewTokensLimit}</span>
               </div>
-
-              <section className="aethera-setting-summary">
-                <div className="aethera-setting-summary-head">
-                  <span>Tự setting</span>
-                </div>
-                <div className="aethera-setting-summary-grid">
-                  {settingSummary.map((item) => (
-                    <div key={item.label} className="aethera-setting-chip">
-                      <span>{item.label}</span>
-                      <strong>{item.value}</strong>
-                    </div>
-                  ))}
-                </div>
-              </section>
 
               <section className="aethera-output">
                 <div className="aethera-output-head">
