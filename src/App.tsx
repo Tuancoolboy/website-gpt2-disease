@@ -4,7 +4,7 @@ import {Activity, ArrowRight, Github, RotateCcw} from 'lucide-react';
 
 const VIDEO_URL =
   'https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260328_083109_283f3553-e28f-428b-a723-d639c617eb2b.mp4';
-const GITHUB_URL = 'https://github.com/Tuancoolboy/gpt2-disease';
+const GITHUB_URL = 'https://github.com/Tuancoolboy';
 const HUGGING_FACE_URL = 'https://huggingface.co/sanim05/GPT2-disease_text_generation';
 const MODEL_ID = 'sanim05/GPT2-disease_text_generation';
 const STORAGE_KEY = 'aethera-disease-settings';
@@ -509,7 +509,7 @@ export default function App() {
   };
 
   const outputPlaceholder = isGenerating
-    ? 'Model đang tạo nội dung từ prompt. Lần chạy đầu có thể mất 20 đến 60 giây, nhất là khi backend đang chạy bằng CPU.'
+    ? 'Model đang tạo nội dung từ prompt. Lần chạy đầu có thể mất 20 đến 60 giây.'
     : backendStatus === 'warming'
       ? 'Server đang tải model vào bộ nhớ. Khi trạng thái chuyển sang sẵn sàng, bạn có thể chạy prompt bình thường.'
       : 'Nội dung sinh ra sẽ xuất hiện tại đây.';

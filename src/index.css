@@ -237,6 +237,7 @@ a {
 }
 
 .aethera-compose {
+  position: relative;
   display: flex;
   min-height: 0;
   flex: 1;
@@ -288,6 +289,8 @@ a {
 }
 
 .aethera-actions {
+  position: relative;
+  z-index: 2;
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
@@ -300,11 +303,14 @@ a {
 
 .aethera-cta,
 .aethera-ghost {
+  position: relative;
+  z-index: 1;
   display: inline-flex;
   align-items: center;
   gap: 10px;
   border-radius: 999px;
   padding: 14px 22px;
+  cursor: pointer;
   transition:
     transform 160ms ease,
     background 160ms ease,
