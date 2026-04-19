@@ -68,7 +68,13 @@ type GenerationSettings = {
   repetitionPenalty: number;
 };
 type SettingKey = keyof GenerationSettings;
-type BackendStatus = 'checking' | 'online' | 'offline';
+type BackendStatus = 'checking' | 'warming' | 'online' | 'offline';
+type HealthResponse = {
+  status?: string;
+  loaded?: boolean;
+  loading?: boolean;
+  error?: string;
+};
 type GenerationResponse = {
   generated_text?: string;
   error?: string;
@@ -190,6 +196,13 @@ function describeControlValue(key: SettingKey, value: number) {
   return describeRepetition(value);
 }
 
+function describeBackendStatus(status: BackendStatus) {
+  if (status === 'online') return 'Sẵn sàng';
+  if (status === 'warming') return 'Đang tải model';
+  if (status === 'offline') return 'Mất kết nối';
+  return 'Đang kiểm tra';
+}
+
 async function parseGenerationResponse(
   response: Response,
   requestUrl: string,
@@ -276,17 +289,28 @@ export default function App() {
 
   useEffect(() => {
     let active = true;
+    const intervalId = window.setInterval(() => {
+      void checkBackend();
+    }, 5000);
 
     const checkBackend = async () => {
       try {
-        const response = await fetch(buildApiUrl('/api/health'));
+        const response = await fetch(buildApiUrl('/api/health'), {cache: 'no-store'});
 
         if (!response.ok) {
           throw new Error('Backend chưa sẵn sàng');
         }
 
+        const data = (await response.json()) as HealthResponse;
+
         if (active) {
-          setBackendStatus('online');
+          if (data.loaded) {
+            setBackendStatus('online');
+          } else if (data.loading || data.status === 'warming') {
+            setBackendStatus('warming');
+          } else {
+            setBackendStatus('offline');
+          }
         }
       } catch {
         if (active) {
@@ -295,9 +319,10 @@ export default function App() {
       }
     };
 
-    checkBackend();
+    void checkBackend();
     return () => {
       active = false;
+      window.clearInterval(intervalId);
     };
   }, []);
 
@@ -392,6 +417,11 @@ export default function App() {
 
   const handleGenerate = async () => {
     if (isGenerating) {
+      return;
+    }
+
+    if (backendStatus === 'checking' || backendStatus === 'warming') {
+      setGenerationError('Model đang khởi động trên server. Hãy chờ vài giây rồi thử lại.');
       return;
     }
 
@@ -552,9 +582,15 @@ export default function App() {
                     type="button"
                     onClick={handleGenerate}
                     className="aethera-ghost"
-                    disabled={isGenerating}
+                    disabled={
+                      isGenerating || backendStatus === 'checking' || backendStatus === 'warming'
+                    }
                   >
-                    {isGenerating ? 'Đang sinh nội dung...' : 'Sinh nội dung bệnh'}
+                    {isGenerating
+                      ? 'Đang sinh nội dung...'
+                      : backendStatus === 'warming'
+                        ? 'Model đang khởi động...'
+                        : 'Sinh nội dung bệnh'}
                   </button>
                   <button type="button" onClick={handleRestoreExample} className="aethera-ghost">
                     Khôi phục ví dụ
@@ -568,6 +604,7 @@ export default function App() {
                 <span>Ví dụ hiện tại: {selectedExample}</span>
                 <span>Độ dài: {describeLength(settings.maxNewTokens)}</span>
                 <span>Model: GPT-2 Vietnamese Health</span>
+                <span>Backend: {describeBackendStatus(backendStatus)}</span>
               </div>
 
               <section className="aethera-output">
@@ -585,6 +622,11 @@ export default function App() {
                     <p className="aethera-loading-copy">
                       Model đang tạo nội dung từ prompt. Lần chạy đầu có thể mất 20 đến 60 giây,
                       nhất là khi backend đang chạy bằng CPU.
+                    </p>
+                  ) : backendStatus === 'warming' && !generatedText ? (
+                    <p className="aethera-loading-copy">
+                      Server đang tải model vào bộ nhớ. Khi trạng thái chuyển sang sẵn sàng, bạn có
+                      thể chạy prompt bình thường.
                     </p>
                   ) : generatedText ? (
                     <p className="whitespace-pre-wrap">{generatedText}</p>

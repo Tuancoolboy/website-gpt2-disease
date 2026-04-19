@@ -4,6 +4,7 @@ import json
 import mimetypes
 import os
 import threading
+import traceback
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -22,9 +23,12 @@ MODEL_LOCAL_ONLY = os.environ.get("MODEL_LOCAL_ONLY", "0") == "1"
 PRELOAD_MODEL = os.environ.get("PRELOAD_MODEL", "0" if os.environ.get("PORT") else "1") == "1"
 
 _MODEL_LOCK = threading.Lock()
+_MODEL_STATE_LOCK = threading.Lock()
 _TOKENIZER = None
 _MODEL = None
 _DEVICE = None
+_MODEL_LOADING = False
+_MODEL_LOAD_ERROR: str | None = None
 
 
 def clamp(value: float, minimum: float, maximum: float) -> float:
@@ -53,6 +57,54 @@ def resolve_device() -> str:
         return "mps"
 
     return "cpu"
+
+
+def is_model_loaded() -> bool:
+    return _TOKENIZER is not None and _MODEL is not None and _DEVICE is not None
+
+
+def get_model_state() -> dict[str, Any]:
+    with _MODEL_STATE_LOCK:
+        return {
+            "loaded": is_model_loaded(),
+            "loading": _MODEL_LOADING,
+            "error": _MODEL_LOAD_ERROR,
+            "device": _DEVICE,
+        }
+
+
+def _load_model_background() -> None:
+    global _MODEL_LOADING, _MODEL_LOAD_ERROR
+
+    try:
+        tokenizer, _, device = get_model()
+        with _MODEL_STATE_LOCK:
+            _MODEL_LOAD_ERROR = None
+        print(f"Model warm-up complete. Vocab size: {len(tokenizer)}. Device: {device}", flush=True)
+    except Exception as error:  # noqa: BLE001
+        with _MODEL_STATE_LOCK:
+            _MODEL_LOAD_ERROR = str(error)
+        print(f"Background model load failed: {error}", flush=True)
+        traceback.print_exc()
+    finally:
+        with _MODEL_STATE_LOCK:
+            _MODEL_LOADING = False
+
+
+def ensure_model_loading() -> None:
+    global _MODEL_LOADING, _MODEL_LOAD_ERROR
+
+    if is_model_loaded():
+        return
+
+    with _MODEL_STATE_LOCK:
+        if _MODEL_LOADING:
+            return
+        _MODEL_LOADING = True
+        _MODEL_LOAD_ERROR = None
+
+    thread = threading.Thread(target=_load_model_background, daemon=True, name="model-loader")
+    thread.start()
 
 
 def get_model() -> tuple[Any, Any, str]:
@@ -207,14 +259,22 @@ class AppHandler(BaseHTTPRequestHandler):
         request_path = normalize_request_path(self.path)
 
         if request_path == "/api/health":
+            state = get_model_state()
+
+            if not state["loaded"] and not state["loading"]:
+                ensure_model_loading()
+                state = get_model_state()
+
             self._write_json(
                 HTTPStatus.OK,
                 {
-                    "status": "ok",
+                    "status": "ok" if state["loaded"] else "warming",
                     "model_id": MODEL_ID,
                     "model_source": MODEL_SOURCE,
-                    "device": _DEVICE,
-                    "loaded": _MODEL is not None,
+                    "device": state["device"],
+                    "loaded": state["loaded"],
+                    "loading": state["loading"],
+                    "error": state["error"],
                 },
             )
             return
@@ -236,6 +296,22 @@ class AppHandler(BaseHTTPRequestHandler):
             )
             return
 
+        state = get_model_state()
+        if not state["loaded"]:
+            ensure_model_loading()
+            state = get_model_state()
+            self._write_json(
+                HTTPStatus.SERVICE_UNAVAILABLE,
+                {
+                    "error": "Model đang khởi động trên server. Hãy chờ vài giây rồi thử lại.",
+                    "loaded": state["loaded"],
+                    "loading": state["loading"],
+                    "device": state["device"],
+                    "model_source": MODEL_SOURCE,
+                },
+            )
+            return
+
         try:
             content_length = int(self.headers.get("Content-Length", "0"))
             raw_body = self.rfile.read(content_length)
@@ -245,6 +321,8 @@ class AppHandler(BaseHTTPRequestHandler):
         except ValueError as error:
             self._write_json(HTTPStatus.BAD_REQUEST, {"error": str(error)})
         except Exception as error:  # noqa: BLE001
+            print(f"Generation request failed: {error}", flush=True)
+            traceback.print_exc()
             self._write_json(
                 HTTPStatus.INTERNAL_SERVER_ERROR,
                 {"error": f"Lỗi backend: {error}"},
@@ -257,6 +335,9 @@ def run() -> None:
         tokenizer, _, device = get_model()
         print(f"Loaded tokenizer vocab size: {len(tokenizer)}")
         print(f"Using device: {device}")
+    else:
+        print(f"Starting background warm-up for model: {MODEL_SOURCE}")
+        ensure_model_loading()
 
     server = ThreadingHTTPServer((HOST, PORT), AppHandler)
     print(f"Backend running at http://{HOST}:{PORT}")
