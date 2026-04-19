@@ -60,6 +60,25 @@ npm run dev
 
 The frontend runs on `http://127.0.0.1:3000`.
 
+## Deploy Notes
+
+Local development works because Vite proxies `/api` to `http://127.0.0.1:8000`.
+
+If you deploy the frontend separately, `fetch('/api/generate')` will hit the frontend host itself. On platforms like Vercel, that returns a platform 404 unless you also deploy an API route on the same host.
+
+For a separate backend deployment, set:
+
+```bash
+VITE_API_BASE_URL=https://your-backend-domain.com
+```
+
+Then the frontend will call:
+
+- `https://your-backend-domain.com/api/health`
+- `https://your-backend-domain.com/api/generate`
+
+This repository's Python backend is a standalone HTTP server in `backend/server.py`. It is not automatically exposed as a Vercel `/api/*` function just by deploying the frontend.
+
 ## Backend Environment Variables
 
 You can customize the backend with these optional variables:
@@ -70,6 +89,10 @@ You can customize the backend with these optional variables:
 - `MODEL_PATH`: local model path if you want to load weights from disk
 - `MODEL_LOCAL_ONLY`: set to `1` to disable remote model downloads
 - `PRELOAD_MODEL`: set to `0` to skip loading the model at startup
+
+## Frontend Environment Variables
+
+- `VITE_API_BASE_URL`: optional absolute backend origin for deployed frontend environments
 
 ## API Endpoints
 

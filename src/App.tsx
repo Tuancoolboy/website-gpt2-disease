@@ -9,6 +9,7 @@ const HUGGING_FACE_URL = 'https://huggingface.co/sanim05/GPT2-disease_text_gener
 const MODEL_ID = 'sanim05/GPT2-disease_text_generation';
 const STORAGE_KEY = 'aethera-disease-settings';
 const GENERATION_TIMEOUT_MS = 120_000;
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL?.trim() ?? '').replace(/\/+$/, '');
 
 type ExamplePreset = {
   topic: string;
@@ -100,6 +101,14 @@ function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
 }
 
+function buildApiUrl(path: string) {
+  if (!API_BASE_URL) {
+    return path;
+  }
+
+  return `${API_BASE_URL}${path.startsWith('/') ? path : `/${path}`}`;
+}
+
 function normalizeSettings(candidate?: Partial<GenerationSettings>): GenerationSettings {
   return {
     maxNewTokens: Math.round(
@@ -181,7 +190,10 @@ function describeControlValue(key: SettingKey, value: number) {
   return describeRepetition(value);
 }
 
-async function parseGenerationResponse(response: Response): Promise<GenerationResponse> {
+async function parseGenerationResponse(
+  response: Response,
+  requestUrl: string,
+): Promise<GenerationResponse> {
   const contentType = response.headers.get('content-type') ?? '';
 
   if (contentType.includes('application/json')) {
@@ -193,12 +205,12 @@ async function parseGenerationResponse(response: Response): Promise<GenerationRe
 
   if (response.status === 404) {
     return {
-      error: `Backend route not found (404). Received: ${text.slice(0, 160)}`,
+      error: `Backend route not found (404) at ${requestUrl}. Received: ${text.slice(0, 160)}`,
     };
   }
 
   return {
-    error: `Backend returned a non-JSON response. Received: ${text.slice(0, 160)}`,
+    error: `Backend returned a non-JSON response from ${requestUrl}. Received: ${text.slice(0, 160)}`,
   };
 }
 
@@ -267,7 +279,7 @@ export default function App() {
 
     const checkBackend = async () => {
       try {
-        const response = await fetch('/api/health');
+        const response = await fetch(buildApiUrl('/api/health'));
 
         if (!response.ok) {
           throw new Error('Backend chưa sẵn sàng');
@@ -395,7 +407,8 @@ export default function App() {
     const timeoutId = window.setTimeout(() => controller.abort(), GENERATION_TIMEOUT_MS);
 
     try {
-      const response = await fetch('/api/generate', {
+      const requestUrl = buildApiUrl('/api/generate');
+      const response = await fetch(requestUrl, {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         signal: controller.signal,
@@ -408,7 +421,7 @@ export default function App() {
         }),
       });
 
-      const data = await parseGenerationResponse(response);
+      const data = await parseGenerationResponse(response, requestUrl);
 
       if (!response.ok || !data.generated_text) {
         throw new Error(data.error ?? 'Không thể tạo nội dung từ model.');
