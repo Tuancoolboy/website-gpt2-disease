@@ -268,7 +268,7 @@ def normalize_request_path(request_path: str) -> str:
 class AppHandler(BaseHTTPRequestHandler):
     server_version = "DiseaseGPTBackend/1.0"
 
-    def _write_json(self, status: int, payload: dict[str, Any]) -> None:
+    def _write_json(self, status: int, payload: dict[str, Any], include_body: bool = True) -> None:
         body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
@@ -277,9 +277,10 @@ class AppHandler(BaseHTTPRequestHandler):
         self.send_header("Access-Control-Allow-Headers", "Content-Type")
         self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
         self.end_headers()
-        self.wfile.write(body)
+        if include_body:
+            self.wfile.write(body)
 
-    def _write_file(self, path: Path) -> None:
+    def _write_file(self, path: Path, include_body: bool = True) -> None:
         body = path.read_bytes()
         content_type, encoding = mimetypes.guess_type(path.name)
 
@@ -290,7 +291,8 @@ class AppHandler(BaseHTTPRequestHandler):
         if encoding:
             self.send_header("Content-Encoding", encoding)
         self.end_headers()
-        self.wfile.write(body)
+        if include_body:
+            self.wfile.write(body)
 
     def do_OPTIONS(self) -> None:  # noqa: N802
         self._write_json(HTTPStatus.NO_CONTENT, {})
@@ -327,6 +329,39 @@ class AppHandler(BaseHTTPRequestHandler):
             return
 
         self._write_json(HTTPStatus.NOT_FOUND, {"error": "Không tìm thấy endpoint."})
+
+    def do_HEAD(self) -> None:  # noqa: N802
+        request_path = normalize_request_path(self.path)
+
+        if request_path == "/api/health":
+            state = get_model_state()
+            self._write_json(
+                HTTPStatus.OK,
+                {
+                    "status": "ok" if state["loaded"] else "warming",
+                    "model_id": MODEL_ID,
+                    "model_source": MODEL_SOURCE,
+                    "device": state["device"],
+                    "loaded": state["loaded"],
+                    "loading": state["loading"],
+                    "error": state["error"],
+                    "max_new_tokens_limit": MAX_NEW_TOKENS_LIMIT,
+                    "max_input_tokens": MAX_INPUT_TOKENS,
+                },
+                include_body=False,
+            )
+            return
+
+        static_file = resolve_static_path(self.path)
+        if static_file is not None:
+            self._write_file(static_file, include_body=False)
+            return
+
+        self._write_json(
+            HTTPStatus.NOT_FOUND,
+            {"error": "Không tìm thấy endpoint."},
+            include_body=False,
+        )
 
     def do_POST(self) -> None:  # noqa: N802
         request_path = normalize_request_path(self.path)

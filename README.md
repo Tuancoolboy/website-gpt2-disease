@@ -1,3 +1,18 @@
+---
+title: GPT-2 Disease Website
+colorFrom: blue
+colorTo: indigo
+sdk: docker
+app_port: 7860
+startup_duration_timeout: 1h
+short_description: Vietnamese GPT-2 disease text generation demo
+models:
+  - sanim05/GPT2-disease_text_generation
+preload_from_hub:
+  - sanim05/GPT2-disease_text_generation
+pinned: false
+---
+
 # GPT-2 Disease Website
 
 This project is a web interface for generating Vietnamese disease-related text with a fine-tuned GPT-2 model.
@@ -124,3 +139,49 @@ git push origin main
 ## Repository
 
 GitHub: `https://github.com/Tuancoolboy/website-gpt2-disease.git`
+
+## Deploy To Hugging Face Spaces
+
+This repository is configured for a Hugging Face Docker Space.
+
+### 1. Create a new Space
+
+Create a new Space on Hugging Face and choose:
+
+- SDK: `Docker`
+- Visibility: your choice
+
+### 2. Push this repository to the Space
+
+Replace `YOUR_USERNAME` and `YOUR_SPACE_NAME`:
+
+```bash
+git remote add hf https://huggingface.co/spaces/YOUR_USERNAME/YOUR_SPACE_NAME
+git push hf main
+```
+
+If you already have the `hf` remote:
+
+```bash
+git push hf main
+```
+
+### 3. Optional Space secrets / variables
+
+Recommended:
+
+- `HF_TOKEN`: your Hugging Face read token for more reliable Hub downloads
+
+Optional:
+
+- `MODEL_ID`
+- `PRELOAD_MODEL=1`
+- `MAX_NEW_TOKENS_LIMIT=128`
+
+### 4. Result
+
+When the Space finishes building:
+
+- `/` serves the React frontend
+- `/api/health` serves backend health
+- `/api/generate` serves text generation
